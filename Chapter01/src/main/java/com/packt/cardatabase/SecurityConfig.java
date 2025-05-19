@@ -1,6 +1,7 @@
 package com.packt.cardatabase;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,7 +59,7 @@ public class SecurityConfig {
     }
 
     // Add Global CORS filter inside the class
-    @Bean
+/*     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
@@ -71,7 +72,7 @@ public class SecurityConfig {
         config.applyPermitDefaultValues();
         source.registerCorsConfiguration("/**", config);
         return source;
-    }
+    } */
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -85,21 +86,43 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf((csrf) -> csrf.disable())
-                .cors(withDefaults())
-                .sessionManagement(
-                        (sessionManagement) -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                 .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests
-                        .requestMatchers(HttpMethod.GET, "/api/cars").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/cars").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/cars").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/owners").hasRole("ADMIN"))
-                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests.requestMatchers(HttpMethod.POST,
-                        "/login").permitAll().anyRequest().authenticated()) 
-                .exceptionHandling((exceptionHandling) -> exceptionHandling.authenticationEntryPoint(authEntryPoint));
+        // Add this one
+        http.csrf(csrf -> csrf.disable()).cors(withDefaults())
+                .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests.anyRequest().permitAll());
+        /*
+         * http.csrf((csrf) -> csrf.disable())
+         * .cors(withDefaults())
+         * .sessionManagement(
+         * (sessionManagement) ->
+         * sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+         * 
+         * .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests
+         * .requestMatchers(HttpMethod.GET, "/api/cars").hasAnyRole("USER", "ADMIN")
+         * .requestMatchers(HttpMethod.POST, "/api/cars").hasRole("ADMIN")
+         * .requestMatchers(HttpMethod.PUT, "/api/cars").hasRole("ADMIN")
+         * .requestMatchers(HttpMethod.DELETE, "/api/owners").hasRole("ADMIN"))
+         * .addFilterBefore(authenticationFilter,
+         * UsernamePasswordAuthenticationFilter.class)
+         * .authorizeHttpRequests((authorizeHttpRequests) ->
+         * authorizeHttpRequests.requestMatchers(HttpMethod.POST,
+         * "/login").permitAll().anyRequest().authenticated())
+         * .exceptionHandling((exceptionHandling) ->
+         * exceptionHandling.authenticationEntryPoint(authEntryPoint));
+         * 
+         */
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", config);
+        return source;
     }
 
 }

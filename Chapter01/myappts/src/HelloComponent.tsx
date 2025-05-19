@@ -1,8 +1,12 @@
 import { useState } from "react";
 import "./App.css";
 import axios from "axios";
-import {QueryClient, QueryClientProvider} from "@tanstack/react-query"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Repositories from "./Repositories";
+import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
+import { AgGridReact } from "ag-grid-react";
+
+
 
 type HelloComponentProps = {
   sname: string;
@@ -15,11 +19,20 @@ type Repository = {
   html_url: string;
   description: string;
 };
+
 const queryClient = new QueryClient();
+// Register all Community features
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 function HelloComponent({ sname, age }: HelloComponentProps) {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [keyword, setKeyword] = useState<string>("");
+  const [columnDefs] = useState<ColDef[]>([
+    { field: "id" },
+    { field: "full_name" },
+    { field: "html_url" },
+  ]);
+
   const handleClick = () => {
     axios
       .get(`https://api.github.com/search/repositories?q=${keyword}`)
@@ -30,6 +43,7 @@ function HelloComponent({ sname, age }: HelloComponentProps) {
         console.error("Error fetching data:", error);
       });
   };
+
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setKeyword(event.target.value);
   };
@@ -46,7 +60,10 @@ function HelloComponent({ sname, age }: HelloComponentProps) {
         placeholder="Search for repositories"
       />
       <button onClick={handleClick}>Search</button>
-
+      <hr />
+      <div className="ag-theme-material" style={{ height: 500, width: 850 }}>
+        <AgGridReact rowData={repositories} columnDefs={columnDefs} />
+      </div>
       <h2>Search Results:</h2>
       <table>
         <thead>
@@ -77,10 +94,9 @@ function HelloComponent({ sname, age }: HelloComponentProps) {
         </tbody>
       </table>
 
-        <QueryClientProvider client={queryClient}>
-            <Repositories q={keyword}/>
-        </QueryClientProvider>
-
+      <QueryClientProvider client={queryClient}>
+        <Repositories q={keyword} />
+      </QueryClientProvider>
     </>
   );
 }
