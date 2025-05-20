@@ -7,6 +7,10 @@ import CarDialogContent from "./CarDialogContent";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateCar } from "../api/carapi";
 import { CarEntry } from "../types";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import EditIcon from "@mui/icons-material/Edit";
+import Tooltip from "@mui/material/Tooltip";
 type FormProps = {
   cardata: CarResponse;
 };
@@ -21,14 +25,16 @@ function EditCar({ cardata }: FormProps) {
     price: cardata.price,
   });
   // Get query client
-    const queryClient = useQueryClient();
-    // Use useMutation hook
-    const { mutate } = useMutation(updateCar, {
-      onSuccess: () => {queryClient.invalidateQueries(["cars"]);},
-      onError: (err) => {
-        console.error(err);
-      }
-    });
+  const queryClient = useQueryClient();
+  // Use useMutation hook
+  const { mutate } = useMutation(updateCar, {
+    onSuccess: () => {
+      queryClient.invalidateQueries(["cars"]);
+    },
+    onError: (err) => {
+      console.error(err);
+    },
+  });
   const handleClickOpen = () => {
     setCar({
       brand: cardata.brand,
@@ -51,21 +57,32 @@ function EditCar({ cardata }: FormProps) {
     console.log("Car data saved:", car);
     const url = new URL(cardata._links.self.href).pathname;
     //const path = new URL(url).pathname;
-    const carEntry: CarEntry = {car, url}
+    const carEntry: CarEntry = { car, url };
     mutate(carEntry);
-    setCar({ brand: "", model: "", color: "", registrationNumber: "", modelYear: 0, price: 0 });
+    setCar({
+      brand: "",
+      model: "",
+      color: "",
+      registrationNumber: "",
+      modelYear: 0,
+      price: 0,
+    });
     // Close the modal form
     handleClose();
   };
   return (
     <>
-      <button onClick={handleClickOpen}>Edit</button>
+      <Tooltip title="Edit car" arrow>
+        <IconButton size="small" onClick={handleClickOpen}>
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Edit car</DialogTitle>
         <CarDialogContent car={car} handleChange={handleChange} />
         <DialogActions>
-          <button onClick={handleClose}>Cancel</button>
-          <button onClick={handleSave}>Save</button>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleSave}>Save</Button>
         </DialogActions>
       </Dialog>
     </>

@@ -1,5 +1,7 @@
 import { Car } from "../types";
 import DialogContent from "@mui/material/DialogContent";
+import TextField from '@mui/material/TextField';
+import Stack from '@mui/material/Stack';
 type CarDialogContentProps = {
   car: Car;
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -8,48 +10,50 @@ type CarDialogContentProps = {
 function CarDialogContent({ car, handleChange }: CarDialogContentProps) {
   return (
     <DialogContent>
-      <input
-        placeholder="Brand"
+        <Stack spacing={2} mt={1} direction="column">
+      <TextField
+        label="Brand"
         name="brand"
         value={car.brand}
         onChange={handleChange}
       />
       <br />
-      <input
-        placeholder="Model"
+      <TextField
+        label="Model"
         name="model"
         value={car.model}
         onChange={handleChange}
       />
       <br />
-      <input
-        placeholder="Color"
+      <TextField
+        label="Color"
         name="color"
         value={car.color}
         onChange={handleChange}
       />
       <br />
-      <input
-        placeholder="Year"
+      <TextField
+        label="Year"
         name="modelYear"
         value={car.modelYear}
         onChange={handleChange}
       />
       <br />
-      <input
-        placeholder="Reg.nr"
+      <TextField
+        label="Reg.nr"
         name="registrationNumber"
         value={car.registrationNumber}
         onChange={handleChange}
       />
       <br />
-      <input
-        placeholder="Price"
+      <TextField
+        label="Price"
         name="price"
         type="number"
         value={car.price}
         onChange={handleChange}
       />
+      </Stack>
     </DialogContent>
   );
 }

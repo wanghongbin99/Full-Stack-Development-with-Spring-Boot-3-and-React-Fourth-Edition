@@ -6,7 +6,8 @@ import { getCars, deleteCar } from "../api/carapi";
 import { Snackbar } from "@mui/material";
 import EditCar from "./EditCar";
 import AddCar from "./AddCar";
-
+import IconButton from '@mui/material/IconButton';
+import DeleteIcon from '@mui/icons-material/Delete';
 function Carlist() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -40,7 +41,7 @@ function Carlist() {
       filterable: false,
       disableColumnMenu: true,
       renderCell: (params: GridCellParams) => (
-        <button
+        <IconButton size="small" aria-label="delete" color="error"
           onClick={() => {
             const carId = params.row._links.self.href;
             const path = new URL(carId).pathname;
@@ -51,8 +52,9 @@ function Carlist() {
             }
           }}
         >
-          Delete
-        </button>
+          <DeleteIcon />
+          
+        </IconButton>
 
       ),
     },
