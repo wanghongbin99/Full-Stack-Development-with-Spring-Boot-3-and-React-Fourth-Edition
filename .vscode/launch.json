@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-CardatabaseApplication<Chapter01>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.packt.cardatabase.CardatabaseApplication",
+            "projectName": "Chapter01",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
