@@ -32,17 +32,6 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    /*
-     * @Bean
-     * public InMemoryUserDetailsManager userDetailsService() {
-     * UserDetails user =
-     * User.builder().username("user").password(passwordEncoder().encode("password")
-     * )
-     * .roles("USER").build();
-     * return new InMemoryUserDetailsManager(user);
-     * }
-     */
-
     private final UserDetailsServiceImpl userDetailsService;
     private final AuthenticationFilter authenticationFilter;
     private final AuthEntryPoint authEntryPoint;
@@ -58,22 +47,6 @@ public class SecurityConfig {
         auth.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
     }
 
-    // Add Global CORS filter inside the class
-/*     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList("*"));
-        config.setAllowedMethods(Arrays.asList("*"));
-        config.setAllowedHeaders(Arrays.asList("*"));
-        // localhost:3000 is allowed
-        config.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
-        config.setAllowCredentials(false);
-        config.applyPermitDefaultValues();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    } */
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -86,30 +59,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // Add this one
-        http.csrf(csrf -> csrf.disable()).cors(withDefaults())
-                .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests.anyRequest().permitAll());
-        /*
-         * http.csrf((csrf) -> csrf.disable())
-         * .cors(withDefaults())
-         * .sessionManagement(
-         * (sessionManagement) ->
-         * sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-         * 
-         * .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests
-         * .requestMatchers(HttpMethod.GET, "/api/cars").hasAnyRole("USER", "ADMIN")
-         * .requestMatchers(HttpMethod.POST, "/api/cars").hasRole("ADMIN")
-         * .requestMatchers(HttpMethod.PUT, "/api/cars").hasRole("ADMIN")
-         * .requestMatchers(HttpMethod.DELETE, "/api/owners").hasRole("ADMIN"))
-         * .addFilterBefore(authenticationFilter,
-         * UsernamePasswordAuthenticationFilter.class)
-         * .authorizeHttpRequests((authorizeHttpRequests) ->
-         * authorizeHttpRequests.requestMatchers(HttpMethod.POST,
-         * "/login").permitAll().anyRequest().authenticated())
-         * .exceptionHandling((exceptionHandling) ->
-         * exceptionHandling.authenticationEntryPoint(authEntryPoint));
-         * 
-         */
+        http.csrf(csrf -> csrf.disable())
+                .cors(withDefaults())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/cars").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/cars").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/cars").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/owners").hasRole("ADMIN")
+                        .anyRequest().authenticated())
+                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(authEntryPoint));
+
         return http.build();
     }
 

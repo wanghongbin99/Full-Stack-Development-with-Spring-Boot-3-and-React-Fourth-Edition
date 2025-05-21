@@ -4,9 +4,20 @@ import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import Carlist from "./components/Carlist";
+import Login from "./components/Login.tsx";
+import axios from "axios";
+import { useEffect } from "react";
 const queryClient = new QueryClient();
 function App() {
+  useEffect(() => {
+    axios.interceptors.request.use((config) => {
+      const token = sessionStorage.getItem("jwt");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+  }, []);
   return (
     <Container maxWidth="xl">
       <CssBaseline />
@@ -16,7 +27,7 @@ function App() {
         </Toolbar>
       </AppBar>
       <QueryClientProvider client={queryClient}>
-        <Carlist />
+        <Login />
       </QueryClientProvider>
     </Container>
   );

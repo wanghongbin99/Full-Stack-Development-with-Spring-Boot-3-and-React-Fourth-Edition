@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-
+import path from "path";
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -10,13 +10,10 @@ export default defineConfig({
         changeOrigin: true,
         // rewrite: (path) => path.replace(/^\/api/, '/api'), // usually not needed if backend path matches
       },
+      "/login": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
     },
   },
-    resolve: {
-    alias: {
-      // 让所有 .css 导入都指向一个空的 mock 文件
-      '\\.css$': path.resolve(__dirname, 'src/test/styleMock.ts'),
-    }
-  }
-
 });
