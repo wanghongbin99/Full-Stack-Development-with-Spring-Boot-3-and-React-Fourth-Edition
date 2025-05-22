@@ -1,4 +1,4 @@
-import { Car } from "../types";
+import { Car } from "../types.ts";
 import DialogContent from "@mui/material/DialogContent";
 import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';

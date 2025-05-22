@@ -3,8 +3,8 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogTitle from "@mui/material/DialogTitle";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addCar } from "../api/carapi";
-import CarDialogContent from "./CarDialogContent";
+import { addCar } from "../api/carapi.ts";
+import CarDialogContent from "./CarDialogContent.tsx";
 import Button from '@mui/material/Button';
 function AddCar() {
   const [open, setOpen] = useState(false);

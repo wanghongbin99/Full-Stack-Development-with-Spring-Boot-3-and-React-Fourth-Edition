@@ -1,4 +1,4 @@
-import { CarResponse, Car, CarEntry } from "../types";
+import { CarResponse, Car, CarEntry } from "../types.ts"
 import axios from "axios";
 export const getCars = async (): Promise<CarResponse[]> => {
   const response = await axios.get(`/api/cars`);
