@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String?
+  role        UserRole @default(CUSTOMER)
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  phone       String?
+  address     String?
+  dateOfBirth DateTime? @map("date_of_birth")
+  licenseNumber String? @unique @map("license_number")
+  emailVerified Boolean @default(false) @map("email_verified")
+  
+  // 关系
+  ownedVehicles Vehicle[] @relation("VehicleOwner")
+  policies      Policy[]  @relation("PolicyCustomer")
+  agentPolicies Policy[]  @relation("PolicyAgent")
+  claims        Claim[]   @relation("ClaimAdjuster")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("users")
+}
+
+// 车辆表
+model Vehicle {
+  id            String    @id @default(cuid())
+  ownerId       String    @map("owner_id")
+  vin           String    @unique
+  make          String
+  model         String
+  year          Int
+  licensePlate String? @map("license_plate")
+  color         String?
+  engineType    String?   @map("engine_type")
+  transmission  String?
+  mileage       Int?
+  purchaseDate  DateTime? @map("purchase_date")
+  purchasePrice Decimal?  @map("purchase_price") @db.Decimal(12, 2)
+  currentValue  Decimal?  @map("current_value") @db.Decimal(12, 2)
+  
+  // 关系
+  owner    User     @relation("VehicleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  policies Policy[]
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("vehicles")
+}
+
+// 保险政策表
+model Policy {
+  id             String        @id @default(cuid())
+  policyNumber   String        @unique @map("policy_number")
+  customerId     String        @map("customer_id")
+  vehicleId      String        @map("vehicle_id")
+  agentId        String?       @map("agent_id")
+  policyType     PolicyType    @map("policy_type")
+  coverageLevel  CoverageLevel @map("coverage_level")
+  premiumAmount  Decimal       @map("premium_amount") @db.Decimal(10, 2)
+  deductible     Decimal       @db.Decimal(8, 2)
+  startDate      DateTime      @map("start_date")
+  endDate        DateTime      @map("end_date")
+  status         PolicyStatus  @default(ACTIVE)
+  
+  // 关系
+  customer User      @relation("PolicyCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  vehicle  Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  agent    User?     @relation("PolicyAgent", fields: [agentId], references: [id])
+  claims   Claim[]
+  payments Payment[]
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("policies")
+}
+
+// 理赔表
+model Claim {
+  id                 String        @id @default(cuid())
+  claimNumber        String        @unique @map("claim_number")
+  policyId           String        @map("policy_id")
+  incidentDate       DateTime      @map("incident_date")
+  reportDate         DateTime      @map("report_date")
+  incidentType       IncidentType  @map("incident_type")
+  description        String
+  location           String?
+  policeReportNumber String?       @map("police_report_number")
+  estimatedDamage    Decimal?      @map("estimated_damage") @db.Decimal(10, 2)
+  claimAmount        Decimal?      @map("claim_amount") @db.Decimal(10, 2)
+  status             ClaimStatus   @default(SUBMITTED)
+  adjusterId         String?       @map("adjuster_id")
+  settlementAmount   Decimal?      @map("settlement_amount") @db.Decimal(10, 2)
+  settlementDate     DateTime?     @map("settlement_date")
+  
+  // 关系
+  policy   Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  adjuster User?  @relation("ClaimAdjuster", fields: [adjusterId], references: [id])
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@map("claims")
+}
+
+// 支付表
+model Payment {
+  id            String        @id @default(cuid())
+  policyId      String        @map("policy_id")
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentDate   DateTime      @map("payment_date")
+  dueDate       DateTime      @map("due_date")
+  paymentMethod String?       @map("payment_method")
+  transactionId String?       @map("transaction_id")
+  status        PaymentStatus @default(PENDING)
+  lateFee       Decimal       @default(0) @map("late_fee") @db.Decimal(8, 2)
+  
+  // 关系
+  policy Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("payments")
+}
+
+// 枚举类型
+enum UserRole {
+  ADMIN
+  AGENT
+  CUSTOMER
+}
+
+enum PolicyType {
+  COMPREHENSIVE
+  THIRD_PARTY
+  COLLISION
+}
+
+enum CoverageLevel {
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
+enum PolicyStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  SUSPENDED
+}
+
+enum IncidentType {
+  ACCIDENT
+  THEFT
+  VANDALISM
+  NATURAL_DISASTER
+  OTHER
+}
+
+enum ClaimStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  DENIED
+  SETTLED
+  CLOSED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
