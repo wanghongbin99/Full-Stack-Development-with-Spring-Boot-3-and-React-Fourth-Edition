@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import PolicyTable from "@/components/PolicyTable";
 import AddPolicyModal from "@/components/AddPolicyModal";
+import AddProposalModal from "@/components/AddProposalModal";
 import VehicleTable from "@/components/VehicleTable";
 import AddVehicleModal from "@/components/AddVehicleModal";
 import { Policy, Vehicle } from "@prisma/client";
@@ -19,6 +20,7 @@ export default function Dashboard() {
 
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
 
   // 如果未登录，跳转到首页或登录页
   useEffect(() => {
@@ -41,13 +43,13 @@ export default function Dashboard() {
   }, [status]);
 
   // 获取保单数据
-  useEffect(() => {
-    const fetchPolicies = async () => {
-      const res = await fetch("/api/policies");
-      const data = await res.json();
-      setPolicies(data);
-    };
+  const fetchPolicies = async () => {
+    const res = await fetch("/api/policies");
+    const data = await res.json();
+    setPolicies(data);
+  };
 
+  useEffect(() => {
     if (status === "authenticated") {
       fetchPolicies();
     }
@@ -80,6 +82,28 @@ export default function Dashboard() {
   const handleAddPolicy = (newPolicy: Policy) => {
     setPolicies((prev) => [...prev, newPolicy]);
     setIsPolicyModalOpen(false);
+  };
+
+  // 更新保单回调
+  const handlePolicyUpdated = (updatedPolicy: Policy) => {
+    setPolicies((prev) =>
+      prev.map((policy) => (policy.id === updatedPolicy.id ? updatedPolicy : policy))
+    );
+  };
+
+  // 续保保单回调
+  const handlePolicyRenewed = (newPolicy: Policy) => {
+    // After renewal, fetch all policies again to ensure the list is up-to-date
+    // This will show the new policy and the old one with updated status
+    fetchPolicies();
+  };
+
+  // 新增投保申请回调
+  const handleAddProposal = (newProposal: any) => {
+    // Optionally update UI or show a success message
+    console.log('Proposal added:', newProposal);
+    setIsProposalModalOpen(false);
+    alert('投保申请已提交！');
   };
 
   if (status === "loading") {
@@ -126,14 +150,34 @@ export default function Dashboard() {
         <section className="bg-white shadow rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">保单列表</h2>
-            <button
-              onClick={() => setIsPolicyModalOpen(true)}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition"
-            >
-              + 添加保单
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setIsPolicyModalOpen(true)}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition"
+              >
+                + 添加保单
+              </button>
+              <button
+                onClick={() => router.push("/proposals")} // Link to proposals page
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded transition"
+              >
+                管理投保申请
+              </button>
+              <button
+                onClick={() => setIsProposalModalOpen(true)}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded transition"
+              >
+                + 提交投保申请
+              </button>
+              <button
+                onClick={() => router.push("/master-policies")}
+                className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded transition"
+              >
+                管理主保单
+              </button>
+            </div>
           </div>
-          <PolicyTable policies={policies} />
+          <PolicyTable policies={policies} onPolicyUpdated={handlePolicyUpdated} onPolicyRenewed={handlePolicyRenewed} />
         </section>
       </div>
 
@@ -148,6 +192,13 @@ export default function Dashboard() {
         <AddPolicyModal
           onClose={() => setIsPolicyModalOpen(false)}
           onAdd={handleAddPolicy}
+        />
+      )}
+      {isProposalModalOpen && (
+        <AddProposalModal
+          onClose={() => setIsProposalModalOpen(false)}
+          onAdd={handleAddProposal}
+          customerId={session.user?.id || ''} // Pass current user's ID
         />
       )}
     </div>

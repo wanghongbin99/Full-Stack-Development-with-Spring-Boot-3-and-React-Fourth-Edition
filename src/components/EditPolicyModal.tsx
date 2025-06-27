@@ -1,25 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Policy, Vehicle, PolicyType, CoverageLevel, Proposal } from '@prisma/client';
+import { Policy, PolicyType, CoverageLevel, Vehicle } from '@prisma/client';
 
-interface AddPolicyModalProps {
+interface EditPolicyModalProps {
   onClose: () => void;
-  onAdd: (newPolicy: Policy) => void;
-  proposal?: Proposal; // Optional proposal to pre-fill the form
+  onUpdate: (updatedPolicy: Policy) => void;
+  policy: Policy; // The policy to be edited
 }
 
-export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyModalProps) {
-  const [policyNumber, setPolicyNumber] = useState(proposal?.id || ''); // Use proposal ID as initial policy number
-  const [policyType, setPolicyType] = useState<PolicyType | ''>(proposal?.policyType || '');
-  const [coverageLevel, setCoverageLevel] = useState<CoverageLevel | ''>(proposal?.coverageLevel || '');
-  const [premiumAmount, setPremiumAmount] = useState('');
-  const [deductible, setDeductible] = useState('');
-  const [startDate, setStartDate] = useState(proposal?.startDate ? new Date(proposal.startDate).toISOString().split('T')[0] : '');
-  const [endDate, setEndDate] = useState(proposal?.endDate ? new Date(proposal.endDate).toISOString().split('T')[0] : '');
-  const [status, setStatus] = useState('ACTIVE'); // Default to ACTIVE for new policies
-  const [vehicleId, setVehicleId] = useState(proposal?.vehicleId || '');
-  const [customerId, setCustomerId] = useState(proposal?.customerId || ''); // Use proposal's customerId
+export default function EditPolicyModal({ onClose, onUpdate, policy }: EditPolicyModalProps) {
+  const [policyNumber, setPolicyNumber] = useState(policy.policyNumber);
+  const [policyType, setPolicyType] = useState<PolicyType>(policy.policyType);
+  const [coverageLevel, setCoverageLevel] = useState<CoverageLevel>(policy.coverageLevel);
+  const [premiumAmount, setPremiumAmount] = useState(policy.premiumAmount.toString());
+  const [deductible, setDeductible] = useState(policy.deductible.toString());
+  const [startDate, setStartDate] = useState(new Date(policy.startDate).toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date(policy.endDate).toISOString().split('T')[0]);
+  const [status, setStatus] = useState(policy.status);
+  const [vehicleId, setVehicleId] = useState(policy.vehicleId);
+  const [customerId, setCustomerId] = useState(policy.customerId);
 
-  // Fetch vehicles to populate the dropdown
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,15 +41,14 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
     fetchVehicles();
   }, []);
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newPolicyData = {
+    const updatedPolicyData = {
       policyNumber,
       customerId,
       vehicleId,
-      agentId: 'clx0987654321abcdefg', // Placeholder agentId, should be dynamic
+      agentId: policy.agentId, // Keep existing agentId
       policyType,
       coverageLevel,
       premiumAmount: parseFloat(premiumAmount),
@@ -58,28 +56,27 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
       status,
-      proposalId: proposal?.id, // Pass proposal ID if available
     };
 
     try {
-      const response = await fetch('/api/policies', {
-        method: 'POST',
+      const response = await fetch(`/api/policies/${policy.id}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newPolicyData),
+        body: JSON.stringify(updatedPolicyData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add policy');
+        throw new Error(errorData.message || 'Failed to update policy');
       }
 
       const savedPolicy = await response.json();
-      onAdd(savedPolicy);
+      onUpdate(savedPolicy);
       onClose();
     } catch (err: any) {
-      console.error('Error adding policy:', err);
+      console.error('Error updating policy:', err);
       setError(err.message);
     }
   };
@@ -87,7 +84,7 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
       <div className="bg-white p-8 rounded-lg shadow-lg w-1/2">
-        <h2 className="text-2xl font-bold mb-4">{proposal ? '从申请生成保单' : '添加新保单'}</h2>
+        <h2 className="text-2xl font-bold mb-4">编辑保单</h2>
         {error && <div className="text-red-500 mb-4">Error: {error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -101,7 +98,6 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               value={policyNumber}
               onChange={(e) => setPolicyNumber(e.target.value)}
               required
-              readOnly={!!proposal} // Make read-only if from proposal
             />
           </div>
           <div className="mb-4">
@@ -119,7 +115,6 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
                 required
-                disabled={!!proposal} // Disable if from proposal
               >
                 <option value="">选择车辆</option>
                 {vehicles.map((v) => (
@@ -140,7 +135,6 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               value={policyType}
               onChange={(e) => setPolicyType(e.target.value as PolicyType)}
               required
-              disabled={!!proposal} // Disable if from proposal
             >
               <option value="">选择类型</option>
               {Object.values(PolicyType).map((type) => (
@@ -160,7 +154,6 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               value={coverageLevel}
               onChange={(e) => setCoverageLevel(e.target.value as CoverageLevel)}
               required
-              disabled={!!proposal} // Disable if from proposal
             >
               <option value="">选择级别</option>
               {Object.values(CoverageLevel).map((level) => (
@@ -207,7 +200,6 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               required
-              readOnly={!!proposal} // Make read-only if from proposal
             />
           </div>
           <div className="mb-4">
@@ -221,7 +213,6 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               required
-              readOnly={!!proposal} // Make read-only if from proposal
             />
           </div>
           <div className="mb-4">
@@ -247,7 +238,7 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               type="submit"
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
-              {proposal ? '生成保单' : '添加保单'}
+              更新保单
             </button>
             <button
               type="button"

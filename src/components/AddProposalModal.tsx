@@ -1,25 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Policy, Vehicle, PolicyType, CoverageLevel, Proposal } from '@prisma/client';
+import { PolicyType, CoverageLevel, Vehicle } from '@prisma/client';
 
-interface AddPolicyModalProps {
+interface AddProposalModalProps {
   onClose: () => void;
-  onAdd: (newPolicy: Policy) => void;
-  proposal?: Proposal; // Optional proposal to pre-fill the form
+  onAdd: (newProposal: any) => void; // Adjust type as needed
+  customerId: string; // Pass customerId from session
 }
 
-export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyModalProps) {
-  const [policyNumber, setPolicyNumber] = useState(proposal?.id || ''); // Use proposal ID as initial policy number
-  const [policyType, setPolicyType] = useState<PolicyType | ''>(proposal?.policyType || '');
-  const [coverageLevel, setCoverageLevel] = useState<CoverageLevel | ''>(proposal?.coverageLevel || '');
-  const [premiumAmount, setPremiumAmount] = useState('');
-  const [deductible, setDeductible] = useState('');
-  const [startDate, setStartDate] = useState(proposal?.startDate ? new Date(proposal.startDate).toISOString().split('T')[0] : '');
-  const [endDate, setEndDate] = useState(proposal?.endDate ? new Date(proposal.endDate).toISOString().split('T')[0] : '');
-  const [status, setStatus] = useState('ACTIVE'); // Default to ACTIVE for new policies
-  const [vehicleId, setVehicleId] = useState(proposal?.vehicleId || '');
-  const [customerId, setCustomerId] = useState(proposal?.customerId || ''); // Use proposal's customerId
-
-  // Fetch vehicles to populate the dropdown
+export default function AddProposalModal({ onClose, onAdd, customerId }: AddProposalModalProps) {
+  const [vehicleId, setVehicleId] = useState('');
+  const [policyType, setPolicyType] = useState<PolicyType | ''>('');
+  const [coverageLevel, setCoverageLevel] = useState<CoverageLevel | ''>('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [notes, setNotes] = useState('');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,44 +36,38 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
     fetchVehicles();
   }, []);
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const newPolicyData = {
-      policyNumber,
+    const newProposalData = {
       customerId,
       vehicleId,
-      agentId: 'clx0987654321abcdefg', // Placeholder agentId, should be dynamic
       policyType,
       coverageLevel,
-      premiumAmount: parseFloat(premiumAmount),
-      deductible: parseFloat(deductible),
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
-      status,
-      proposalId: proposal?.id, // Pass proposal ID if available
+      notes,
     };
 
     try {
-      const response = await fetch('/api/policies', {
+      const response = await fetch('/api/proposals', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newPolicyData),
+        body: JSON.stringify(newProposalData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add policy');
+        throw new Error(errorData.message || 'Failed to submit proposal');
       }
 
-      const savedPolicy = await response.json();
-      onAdd(savedPolicy);
+      const savedProposal = await response.json();
+      onAdd(savedProposal);
       onClose();
     } catch (err: any) {
-      console.error('Error adding policy:', err);
+      console.error('Error submitting proposal:', err);
       setError(err.message);
     }
   };
@@ -87,26 +75,12 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
       <div className="bg-white p-8 rounded-lg shadow-lg w-1/2">
-        <h2 className="text-2xl font-bold mb-4">{proposal ? '从申请生成保单' : '添加新保单'}</h2>
+        <h2 className="text-2xl font-bold mb-4">提交投保申请</h2>
         {error && <div className="text-red-500 mb-4">Error: {error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="policyNumber">
-              保单号
-            </label>
-            <input
-              type="text"
-              id="policyNumber"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={policyNumber}
-              onChange={(e) => setPolicyNumber(e.target.value)}
-              required
-              readOnly={!!proposal} // Make read-only if from proposal
-            />
-          </div>
-          <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="vehicleId">
-              关联车辆
+              选择车辆
             </label>
             {loadingVehicles ? (
               <div>加载车辆中...</div>
@@ -119,7 +93,6 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
                 required
-                disabled={!!proposal} // Disable if from proposal
               >
                 <option value="">选择车辆</option>
                 {vehicles.map((v) => (
@@ -130,6 +103,7 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               </select>
             )}
           </div>
+
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="policyType">
               保单类型
@@ -140,7 +114,6 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               value={policyType}
               onChange={(e) => setPolicyType(e.target.value as PolicyType)}
               required
-              disabled={!!proposal} // Disable if from proposal
             >
               <option value="">选择类型</option>
               {Object.values(PolicyType).map((type) => (
@@ -150,6 +123,7 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               ))}
             </select>
           </div>
+
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="coverageLevel">
               承保级别
@@ -160,7 +134,6 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               value={coverageLevel}
               onChange={(e) => setCoverageLevel(e.target.value as CoverageLevel)}
               required
-              disabled={!!proposal} // Disable if from proposal
             >
               <option value="">选择级别</option>
               {Object.values(CoverageLevel).map((level) => (
@@ -170,32 +143,7 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               ))}
             </select>
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="premiumAmount">
-              保费金额
-            </label>
-            <input
-              type="number"
-              id="premiumAmount"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={premiumAmount}
-              onChange={(e) => setPremiumAmount(e.target.value)}
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="deductible">
-              免赔额
-            </label>
-            <input
-              type="number"
-              id="deductible"
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={deductible}
-              onChange={(e) => setDeductible(e.target.value)}
-              required
-            />
-          </div>
+
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="startDate">
               开始日期
@@ -207,9 +155,9 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               required
-              readOnly={!!proposal} // Make read-only if from proposal
             />
           </div>
+
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="endDate">
               结束日期
@@ -221,33 +169,28 @@ export default function AddPolicyModal({ onClose, onAdd, proposal }: AddPolicyMo
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               required
-              readOnly={!!proposal} // Make read-only if from proposal
             />
           </div>
+
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="status">
-              状态
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="notes">
+              备注 (可选)
             </label>
-            <select
-              id="status"
+            <textarea
+              id="notes"
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              required
-            >
-              <option value="">选择状态</option>
-              <option value="ACTIVE">活跃</option>
-              <option value="EXPIRED">过期</option>
-              <option value="CANCELLED">已取消</option>
-              <option value="SUSPENDED">已暂停</option>
-            </select>
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+            ></textarea>
           </div>
+
           <div className="flex items-center justify-between">
             <button
               type="submit"
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
-              {proposal ? '生成保单' : '添加保单'}
+              提交申请
             </button>
             <button
               type="button"

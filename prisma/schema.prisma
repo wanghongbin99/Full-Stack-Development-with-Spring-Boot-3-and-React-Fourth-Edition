@@ -7,6 +7,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  user      User     @relation(fields: [authorId], references: [id])
+  tags      Tag[]
+}
+
+model Profile {
+  id     Int     @id @default(autoincrement())
+  bio    String?
+  userId String  @unique
+  user   User    @relation(fields: [userId], references: [id])
+}
+
+model Tag {
+  id    Int    @id @default(autoincrement())
+  name  String
+  posts Post[]
+}
+
+
+
 // 用户表
 model User {
   id          String   @id @default(cuid())
@@ -20,12 +46,18 @@ model User {
   dateOfBirth DateTime? @map("date_of_birth")
   licenseNumber String? @unique @map("license_number")
   emailVerified Boolean @default(false) @map("email_verified")
+  ncdYears      Int       @default(0) @map("ncd_years")
+  lastClaimDate DateTime? @map("last_claim_date")
   
   // 关系
+  posts         Post[]
+  profile       Profile?
   ownedVehicles Vehicle[] @relation("VehicleOwner")
   policies      Policy[]  @relation("PolicyCustomer")
   agentPolicies Policy[]  @relation("PolicyAgent")
   claims        Claim[]   @relation("ClaimAdjuster")
+  proposals     Proposal[] @relation("ProposalCustomer")
+  masterPolicies MasterPolicy[] @relation("MasterPolicyHolder")
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -53,6 +85,7 @@ model Vehicle {
   // 关系
   owner    User     @relation("VehicleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   policies Policy[]
+  proposals     Proposal[]
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -74,11 +107,13 @@ model Policy {
   startDate      DateTime      @map("start_date")
   endDate        DateTime      @map("end_date")
   status         PolicyStatus  @default(ACTIVE)
+  masterPolicyId String? @map("master_policy_id")
   
   // 关系
   customer User      @relation("PolicyCustomer", fields: [customerId], references: [id], onDelete: Cascade)
   vehicle  Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   agent    User?     @relation("PolicyAgent", fields: [agentId], references: [id])
+  masterPolicy   MasterPolicy? @relation("MasterPolicyPolicies", fields: [masterPolicyId], references: [id])
   claims   Claim[]
   payments Payment[]
   
@@ -184,4 +219,47 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+}
+
+model MasterPolicy {
+  id            String        @id @default(cuid())
+  masterPolicyNumber String   @unique @map("master_policy_number")
+  holderId      String        @map("holder_id") // User who holds the master policy
+  startDate     DateTime      @map("start_date")
+  endDate       DateTime      @map("end_date")
+  status        PolicyStatus  @default(ACTIVE) // Use existing PolicyStatus enum
+
+  holder        User          @relation("MasterPolicyHolder", fields: [holderId], references: [id])
+  policies      Policy[]      @relation("MasterPolicyPolicies")
+
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@map("master_policies")
+}
+
+model Proposal {
+  id            String        @id @default(cuid())
+  customerId    String        @map("customer_id")
+  vehicleId     String        @map("vehicle_id")
+  policyType    PolicyType    @map("policy_type")
+  coverageLevel CoverageLevel @map("coverage_level")
+  startDate     DateTime      @map("start_date")
+  endDate       DateTime      @map("end_date")
+  status        ProposalStatus @default(PENDING) // PENDING, APPROVED, REJECTED
+  notes         String?
+
+  customer      User          @relation("ProposalCustomer", fields: [customerId], references: [id])
+  vehicle       Vehicle       @relation(fields: [vehicleId], references: [id])
+
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@map("proposals")
+}
+
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

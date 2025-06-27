@@ -50,6 +50,15 @@ export const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt' // 推荐使用 JWT 来管理 session
+  },
+  callbacks: {
+    async session({ session, user }) {
+      // 将用户信息添加到 session 中
+      if (user) {
+        session.user = user
+      }
+      return session
+    }
   }
 })
 
