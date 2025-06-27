@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from 'react';
 import { Proposal, PolicyType, CoverageLevel, ProposalStatus } from '@prisma/client';
 import AddPolicyModal from '@/components/AddPolicyModal';
